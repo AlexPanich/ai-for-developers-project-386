@@ -1,15 +1,24 @@
 import { expect, test } from 'bun:test'
 import { render, screen } from '@testing-library/react'
-import App from './App'
+import { MemoryRouter } from 'react-router'
+import { AppRoutes } from './App'
+
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AppRoutes />
+    </MemoryRouter>,
+  )
+}
 
 test('Показывает название сервиса', () => {
-  render(<App />)
+  renderAt('/')
 
   expect(screen.getByRole('heading', { level: 1, name: 'Calendar' })).toBeInTheDocument()
 })
 
 test('Обещает фиксированные слоты, проверку конфликта и список записей', () => {
-  render(<App />)
+  renderAt('/')
 
   expect(screen.getByText('Фиксированные 30-минутные слоты с 09:00 до 18:00.')).toBeInTheDocument()
   expect(screen.getByText('Проверка конфликта при бронировании.')).toBeInTheDocument()
@@ -17,7 +26,7 @@ test('Обещает фиксированные слоты, проверку к�
 })
 
 test('Ведёт на запись, список записей и главную', () => {
-  render(<App />)
+  renderAt('/')
 
   const bookLinks = screen.getAllByRole('link', { name: /Записаться/ })
   expect(bookLinks.length).toBeGreaterThan(0)
