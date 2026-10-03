@@ -3,7 +3,9 @@
 [![hexlet-check](https://github.com/AlexPanich/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/AlexPanich/ai-for-developers-project-386/actions)
 [![CI](https://github.com/AlexPanich/ai-for-developers-project-386/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexPanich/ai-for-developers-project-386/actions/workflows/ci.yml)
 
-Сервис для бронирования времени звонков: хозяин публикует доступные слоты, гость выбирает удобное время — без переписки «когда тебе удобно?».
+Сервис записи на звонок к одному хозяину — хозяину сайта. Гость без регистрации занимает свободный слот и оставляет имя и email. Список записей виден всем, входа нет.
+
+Слот длится ровно 30 минут и лежит на сетке с 09:00 до 18:00 по Москве. Его нельзя занять дважды и нельзя закрыть наполовину: закрывается только слот целиком. Пока слоты закрыть нельзя, открыт каждый календарный день.
 
 - Учебный проект Хекслета: <https://ru.hexlet.io/programs/ai-for-developers>
 - Как это должно работать: <https://files.hexlet.app/a/2ipc5m>
