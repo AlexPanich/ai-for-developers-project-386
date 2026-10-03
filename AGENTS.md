@@ -61,3 +61,17 @@ bun run test:frontend -- -t "Счётчик"   # по названию тест�
   - `release-please.yml` — на push в `master` держит release-PR.
 - Релизы: release-please (`release-please-config.json`, `release-type: node`, путь `.`) ведёт версию в `version` корневого `package.json` и `.release-please-manifest.json`, пишет `CHANGELOG.md`, ставит теги `vX.Y.Z`. Release-PR открывается только при наличии `feat:`/`fix:`/breaking-коммитов. Бамп версии не ломает `bun install --frozen-lockfile`.
 - `.gitignore` в корне: `node_modules/`, `dist/` — не коммитить.
+
+## Agent skills
+
+### Issue tracker
+
+Issues живут в GitHub Issues этого репо, все операции через `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Дефолтные пять канонических ролей, имя лейбла = имя роли. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` + `docs/adr/` в корне. See `docs/agents/domain.md`.
