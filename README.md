@@ -1,29 +1,94 @@
 # Календарь звонков
 
-
 [![hexlet-check](https://github.com/AlexPanich/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/AlexPanich/ai-for-developers-project-386/actions)
+[![CI](https://github.com/AlexPanich/ai-for-developers-project-386/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexPanich/ai-for-developers-project-386/actions/workflows/ci.yml)
 
-Разработайте совместно с ИИ сервис для бронирования календаря
+Сервис для бронирования времени звонков: хозяин публикует доступные слоты, гость выбирает удобное время — без переписки «когда тебе удобно?».
 
-Учебный проект Хекслета: https://ru.hexlet.io/programs/ai-for-developers
-Как это должно работать: https://files.hexlet.app/a/2ipc5m
+- Учебный проект Хекслета: <https://ru.hexlet.io/programs/ai-for-developers>
+- Как это должно работать: <https://files.hexlet.app/a/2ipc5m>
+
+## Статус
+
+Проект в разработке. Инфраструктура готова и работает: монорео, линтер, тесты, CI на каждый push и автоматические релизы. Функциональность сервиса дорабатывается.
 
 ## Стек
 
-- Разное
+| Слой | Технологии |
+|---|---|
+| Бекенд | Bun, TypeScript, [Elysia](https://elysiajs.com) |
+| Фронтенд | React 19, TypeScript, [Vite](https://vite.dev) |
+| Качество кода | [Biome](https://biomejs.dev) (линтер + форматтер), Bun Test |
+| Автоматизация | GitHub Actions, release-please |
 
 ## Установка
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Требуется [Bun](https://bun.sh) 1.4 или новее.
 
 ```bash
 git clone https://github.com/AlexPanich/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+bun install
 ```
 
-## Использование
+## Запуск
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+```bash
+bun run dev            # бекенд и фронтенд одновременно
+bun run dev:backend    # API  → http://localhost:3000
+bun run dev:frontend   # SPA  → http://localhost:5173
+```
+
+## Команды
+
+| Команда | Что делает |
+|---|---|
+| `bun run lint` | Проверка линтером и форматированием (Biome) |
+| `bun run lint:fix` | Автоисправление замечаний линтера |
+| `bun run format` | Форматирование кода |
+| `bun run test` | Тесты бекенда и фронтенда |
+| `bun run test:backend` | Только тесты бекенда |
+| `bun run test:frontend` | Только тесты фронтенда |
+
+Запуск одного теста — через скрипт пакета: `bun run test:frontend -- -t "Название теста"`.
+
+## Структура репозитория
+
+```
+apps/
+  backend/    # API на Elysia (порт 3000)
+    src/app.ts      — само приложение (роуты)
+    src/index.ts    — точка входа, запуск сервера
+    test/           — интеграционные smoke-тесты
+  frontend/   # SPA на React + Vite (порт 5173)
+    src/            — компоненты, стили, тесты
+```
+
+Монорео на Bun workspaces: команды из корня выполняются во всех пакетах.
+
+## Качество кода и CI
+
+На каждый push GitHub Actions запускает:
+
+- **CI** (`ci.yml`) — установка зависимостей (`--frozen-lockfile`), линтер, тесты;
+- **hexlet-check** (`hexlet-check.yml`) — автотесты Хекслета.
+
+То же самое локально, перед каждым коммитом:
+
+```bash
+bun run lint && bun run test
+```
+
+## Коммиты и релизы
+
+- Сообщения коммитов — по спецификации
+  [Conventional Commits](https://www.conventionalcommits.org/ru/v1.0.0/):
+  `feat: добавить слоты`, `fix: починить часовой пояс`, `chore: обновить зависимости`.
+  Полные правила — в [CONTRIBUTING.md](CONTRIBUTING.md).
+- Релизы автоматические: **release-please** читает историю коммитов, считает версию
+  по [семантическому версионированию](https://semver.org/lang/ru/), собирает
+  `CHANGELOG.md` и держит release-PR открытым. Смержили release-PR — появляется
+  тег `vX.Y.Z` и GitHub Release.
 
 ---
 
