@@ -24,6 +24,8 @@ bun run test:backend             # только backend
 bun run test:frontend            # только frontend
 bun run dev:backend              # http://localhost:3000
 bun run dev:frontend             # vite dev server
+bun run build                    # сборка: для фронтенда `tsc -b && vite build`
+bun run --filter frontend codegen # типы API фронтенда из contract/openapi.yaml → apps/frontend/src/api/schema.ts
 ```
 
 Один тест — через скрипт пакета, аргументы после `--`:
@@ -34,7 +36,9 @@ bun run test:frontend -- src/App.test.tsx
 bun run test:frontend -- -t "Счётчик"   # по названию теста
 ```
 
-Отдельного typecheck-скрипта нет; единственный — `cd apps/frontend && bun run build` (`tsc -b && vite build`).
+Отдельного typecheck-скрипта нет; проверка типов — `tsc -b` внутри `bun run build` (корневой `bun run build` прогоняет его во всех пакетах, где есть скрипт `build`).
+
+Сгенерированное руками не правится: `apps/frontend/src/api/schema.ts` перегенерируется командой `codegen`, CI падает на ручных правках (`git diff --exit-code`); то же — для `contract/openapi.yaml` (команда `bun run --filter contract compile`).
 
 Порядок проверки: `bun run lint` → `bun run test` (в CI: install → lint → test).
 

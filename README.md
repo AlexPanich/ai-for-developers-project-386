@@ -51,6 +51,8 @@ bun run dev:frontend   # SPA  → http://localhost:5173
 | `bun run test` | Тесты бекенда и фронтенда |
 | `bun run test:backend` | Только тесты бекенда |
 | `bun run test:frontend` | Только тесты фронтенда |
+| `bun run build` | Сборка: для фронтенда `tsc -b` (проверка типов) и `vite build` |
+| `bun run --filter frontend codegen` | Генерация типов API фронтенда из `contract/openapi.yaml` |
 
 Запуск одного теста — через скрипт пакета: `bun run test:frontend -- -t "Название теста"`.
 
@@ -62,7 +64,19 @@ bun run dev:frontend   # SPA  → http://localhost:5173
 bun run --filter contract compile
 ```
 
-Сгенерированное руками не правится: CI перегенерирует спецификацию и падает, если файл изменён вручную (`git diff --exit-code -- contract/openapi.yaml`). Из `openapi.yaml` дальнейшие артефакты (типы фронтенда, типы и схемы валидации бекенда) генерируются командами, описанными в задачах #18 и #26; направление зафиксировано в [ADR 0002](docs/adr/0002-generation-from-contract.md).
+Сгенерированное руками не правится: CI перегенерирует спецификацию и падает, если файл изменён вручную (`git diff --exit-code -- contract/openapi.yaml`). Направление дальнейшей генерации зафиксировано в [ADR 0002](docs/adr/0002-generation-from-contract.md).
+
+**Типы фронтенда** берутся из `contract/openapi.yaml` командой пакета frontend:
+
+```bash
+bun run --filter frontend codegen
+```
+
+Команда пишет `apps/frontend/src/api/schema.ts`; файл коммитится и правится только генерацией — CI перегенерирует его и падает на ручных правках (`git diff --exit-code -- apps/frontend/src/api/schema.ts`).
+
+Клиент API фронтенда (`apps/frontend/src/api`) собирается поверх этих типов: успешные тела типизированы сгенерированными моделями, конверт `{ error: { code, message } }` разбирает обёртка `request`, и на экран ошибка доходит как `error.message`. Пути запросов относительные (`/api/...`): в dev Vite проксирует их на бекенд (`apps/frontend/vite.config.ts`).
+
+Типы и схемы валидации бекенда генерируются командой, описанной в задаче #26.
 
 ## Структура репозитория
 
@@ -82,7 +96,7 @@ apps/
 
 На каждый push GitHub Actions запускает:
 
-- **CI** (`ci.yml`) — установка зависимостей (`--frozen-lockfile`), линтер, тесты;
+- **CI** (`ci.yml`) — установка зависимостей (`--frozen-lockfile`), линтер, тесты, перегенерация контракта и типов API с проверкой, что сгенерированное закоммичено;
 - **hexlet-check** (`hexlet-check.yml`) — автотесты Хекслета.
 
 То же самое локально, перед каждым коммитом:

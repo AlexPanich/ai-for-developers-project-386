@@ -10,6 +10,7 @@
     "dev:frontend": "bun --filter frontend dev",
     "dev:backend": "bun --filter backend dev",
     "dev": "bun --filter \"*\" dev",
+    "build": "bun --filter \"*\" build",
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
