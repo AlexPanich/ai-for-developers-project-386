@@ -22,7 +22,7 @@ type Json<Response> = Response extends { content: infer Content }
 export type ResponseBody<Op> = Json<Responses<Op>[SuccessStatus<Responses<Op>>]>
 
 /** Тело запроса операции (`application/json`), выведенное из контракта. */
-export type RequestBody<Op> = Op extends { requestBody: { content: infer Body } } ? Body : never
+export type RequestBody<Op> = Op extends { requestBody: infer Body } ? Json<Body> : never
 
 export function listEventTypes(): Promise<ResponseBody<operations['EventTypes_list']>> {
   return request('/api/event-types')
