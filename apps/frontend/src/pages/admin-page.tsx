@@ -1,5 +1,5 @@
 import { type ChangeEvent, type FormEvent, useState } from 'react'
-import { ApiError } from '@/api/client'
+import { messageFromError } from '@/api/client'
 import { createEventType } from '@/api/endpoints'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,7 +61,7 @@ export function AdminPage() {
       setCreated(true)
       setForm((current) => ({ ...current, name: '', description: '' }))
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : 'Неизвестная ошибка')
+      setErrorMessage(messageFromError(error))
     }
   }
 

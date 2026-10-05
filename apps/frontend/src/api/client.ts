@@ -62,6 +62,14 @@ export function postJson<T>(
   })
 }
 
+/**
+ * Текст для показа на экране: `error.message` из конверта ошибки API (§8) или
+ * запасная фраза, если упала не обёртка клиента. Общая для всех страниц.
+ */
+export function messageFromError(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'Неизвестная ошибка'
+}
+
 function parseJson(body: string): unknown {
   if (body === '') {
     return undefined
