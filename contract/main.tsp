@@ -167,7 +167,7 @@ interface Bookings {
 
     @body
     body: Booking;
-  } | BadRequestError | ConflictError;
+  } | BadRequestError | NotFoundError | ConflictError;
 
   @get
   list(): BookingList;
