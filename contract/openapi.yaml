@@ -15,6 +15,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Booking'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
         '409':
           description: The request conflicts with the current state of the server.
           content:
@@ -63,6 +69,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EventType'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
         '401':
           description: Access is unauthorized.
           content:
@@ -202,6 +214,11 @@ components:
           properties:
             code:
               type: string
+              enum:
+                - VALIDATION_ERROR
+                - INVALID_ADMIN_PASSWORD
+                - EVENT_TYPE_NOT_FOUND
+                - SLOT_TAKEN
             message:
               type: string
           required:
@@ -226,6 +243,7 @@ components:
           type: integer
           format: int32
           minimum: 1
+          maximum: 540
     EventTypeCreate:
       type: object
       required:
@@ -241,6 +259,7 @@ components:
           type: integer
           format: int32
           minimum: 1
+          maximum: 540
     EventTypeList:
       type: object
       required:

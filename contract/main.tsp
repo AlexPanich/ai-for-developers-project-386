@@ -16,6 +16,7 @@ model EventType {
   description: string;
 
   @minValue(1)
+  @maxValue(540)
   durationMinutes: int32;
 }
 
@@ -25,6 +26,7 @@ model EventTypeCreate {
   description: string;
 
   @minValue(1)
+  @maxValue(540)
   durationMinutes: int32;
 }
 
@@ -89,9 +91,18 @@ model Availability {
 @error
 model ErrorBody {
   error: {
-    code: string;
+    code: "VALIDATION_ERROR" | "INVALID_ADMIN_PASSWORD" | "EVENT_TYPE_NOT_FOUND" | "SLOT_TAKEN";
     message: string;
   };
+}
+
+@error
+model BadRequestError {
+  @statusCode
+  statusCode: 400;
+
+  @body
+  body: ErrorBody;
 }
 
 @error
@@ -144,7 +155,7 @@ interface EventTypes {
 
     @body
     body: EventType;
-  } | UnauthorizedError;
+  } | BadRequestError | UnauthorizedError;
 }
 
 @route("/bookings")
@@ -156,7 +167,7 @@ interface Bookings {
 
     @body
     body: Booking;
-  } | ConflictError;
+  } | BadRequestError | ConflictError;
 
   @get
   list(): BookingList;
