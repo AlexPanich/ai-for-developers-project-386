@@ -57,6 +57,10 @@ export function post(
   )
 }
 
+export function get(app: AppLike, path: string): Promise<Response> {
+  return app.handle(new Request(`http://localhost${path}`))
+}
+
 export async function errorEnvelope(
   response: Response,
 ): Promise<{ code: string; message: string }> {

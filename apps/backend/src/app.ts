@@ -67,8 +67,8 @@ export function createApp(options: { dbPath?: string } = {}) {
       // (host.ts), в деве UI отдаёт Vite на 5173.
       .get(
         EVENT_TYPES_PATH,
-        // TODO(#20): список типов из SQLite (ADR 0001)
-        () => ({ eventTypes: [] }),
+        // Список типов для страницы `/book` (SPEC §6): без фильтрации, все строки
+        () => ({ eventTypes: store.list() }),
         { response: { 200: S.EventTypeList } },
       )
       .post(
@@ -91,8 +91,8 @@ export function createApp(options: { dbPath?: string } = {}) {
       )
       .get(
         "/api/event-types/:id",
-        // TODO(#20): выборка типа из SQLite; без хранилища типа не существует
-        (ctx) => notFound(ctx),
+        // Выборка типа из SQLite: нет строки → 404 (SPEC §8)
+        (ctx) => store.get(ctx.params.id) ?? notFound(ctx),
         {
           params: S.parameters.EventTypes_get.path,
           response: { 200: S.EventType, 404: S.ErrorBody },
