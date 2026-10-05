@@ -1,7 +1,12 @@
-import { expect, test } from 'bun:test'
-import { render, screen } from '@testing-library/react'
+import { afterEach, expect, test } from 'bun:test'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { AppRoutes } from './App'
+
+afterEach(() => {
+  // У RTL авто-cleanup не включается: в bun:test `afterEach` не глобальный
+  cleanup()
+})
 
 function renderAt(path: string) {
   return render(
