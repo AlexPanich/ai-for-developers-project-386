@@ -41,6 +41,18 @@ bun run dev:backend    # API  → http://localhost:3000
 bun run dev:frontend   # SPA  → http://localhost:5173
 ```
 
+## Запуск в контейнере
+
+Корневой `Dockerfile` собирает приложение и запускает его на порту из переменной `PORT` — по этому контракту работает автопроверка Хекслета (`PORT=8080`, `GET /` → 200):
+
+```bash
+docker build -t calendar-slot .
+docker run --rm -p 8080:8080 -e PORT=8080 calendar-slot
+# → http://localhost:8080 — лендинг, на том же порту API /api/...
+```
+
+Образ ставит зависимости строго по `bun.lock`, собирает фронтенд внутри (`bun run build`) и отдаёт его бекенд: точные роуты API бьют SPA-фолбэк, неизвестные `/api/*`-пути дают 404, остальные GET-пути — `index.html` (работают глубокие ссылки `/book`, `/admin`). `docker-compose.yml` не нужен: автопроверка его не читает (решение в [issue #14](https://github.com/AlexPanich/ai-for-developers-project-386/issues/14)).
+
 ## Команды
 
 | Команда | Что делает |
