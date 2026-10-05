@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { app } from "../src/app"
+import { createApp } from "../src/app"
+import { removeTempDbs, tempDbPath } from "./support"
 
 let baseUrl = ""
+const app = createApp({ dbPath: tempDbPath() })
 
 beforeAll(async () => {
   await app.listen(0)
@@ -12,6 +14,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   app.stop()
+  removeTempDbs()
 })
 
 describe("smoke", () => {

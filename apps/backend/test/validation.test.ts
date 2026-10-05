@@ -1,13 +1,6 @@
-import { describe, expect, test } from "bun:test"
-import { app, OWNER_PASSWORD } from "../src/app"
-
-const BASE = "http://localhost"
-
-const VALID_EVENT_TYPE = {
-  name: "Созвон",
-  description: "Разговор по делу",
-  durationMinutes: 45,
-}
+import { afterAll, describe, expect, test } from "bun:test"
+import { createApp, OWNER_PASSWORD } from "../src/app"
+import { errorEnvelope, post, removeTempDbs, tempDbPath, VALID_EVENT_TYPE } from "./support"
 
 const VALID_BOOKING = {
   eventTypeId: "3f1d4f8a-1b7c-4f1e-9f3a-0b1c2d3e4f56",
@@ -16,29 +9,16 @@ const VALID_BOOKING = {
   guestEmail: "ivan@example.com",
 }
 
-function post(path: string, body: unknown, headers: Record<string, string> = {}) {
-  return app.handle(
-    new Request(`${BASE}${path}`, {
-      method: "POST",
-      headers: { "content-type": "application/json", ...headers },
-      body: JSON.stringify(body),
-    }),
-  )
-}
+const app = createApp({ dbPath: tempDbPath() })
 
-async function errorEnvelope(response: Response): Promise<{ code: string; message: string }> {
-  const body = (await response.json()) as { error?: { code: string; message: string } }
-  if (!body.error) {
-    throw new Error(
-      `Ожидался конверт { error: { code, message } }, пришло: ${JSON.stringify(body)}`,
-    )
-  }
-  return body.error
-}
+afterAll(() => {
+  removeTempDbs()
+})
 
 describe("§8 Валидация и ошибки", () => {
   test("§8: durationMinutes вне 1..540 → 400 VALIDATION_ERROR с по-русски message", async () => {
     const response = await post(
+      app,
       "/api/event-types",
       { ...VALID_EVENT_TYPE, durationMinutes: 541 },
       { "X-Admin-Password": OWNER_PASSWORD },
@@ -53,6 +33,7 @@ describe("§8 Валидация и ошибки", () => {
 
   test("§8: durationMinutes не целое число → 400 VALIDATION_ERROR", async () => {
     const response = await post(
+      app,
       "/api/event-types",
       { ...VALID_EVENT_TYPE, durationMinutes: 45.5 },
       { "X-Admin-Password": OWNER_PASSWORD },
@@ -64,6 +45,7 @@ describe("§8 Валидация и ошибки", () => {
 
   test("§8: durationMinutes меньше 1 → 400 VALIDATION_ERROR", async () => {
     const response = await post(
+      app,
       "/api/event-types",
       { ...VALID_EVENT_TYPE, durationMinutes: 0 },
       { "X-Admin-Password": OWNER_PASSWORD },
@@ -74,14 +56,14 @@ describe("§8 Валидация и ошибки", () => {
   })
 
   test("§8: отсутствующий X-Admin-Password → 401 INVALID_ADMIN_PASSWORD", async () => {
-    const response = await post("/api/event-types", VALID_EVENT_TYPE)
+    const response = await post(app, "/api/event-types", VALID_EVENT_TYPE)
 
     expect(response.status).toBe(401)
     expect((await errorEnvelope(response)).code).toBe("INVALID_ADMIN_PASSWORD")
   })
 
   test("§8: неверный пароль Владельца → 401 INVALID_ADMIN_PASSWORD", async () => {
-    const response = await post("/api/event-types", VALID_EVENT_TYPE, {
+    const response = await post(app, "/api/event-types", VALID_EVENT_TYPE, {
       "X-Admin-Password": "wrong-password",
     })
 
@@ -89,8 +71,20 @@ describe("§8 Валидация и ошибки", () => {
     expect((await errorEnvelope(response)).code).toBe("INVALID_ADMIN_PASSWORD")
   })
 
+  test("§8: неверный пароль → 401 даже при невалидном теле запроса", async () => {
+    const response = await post(
+      app,
+      "/api/event-types",
+      { ...VALID_EVENT_TYPE, durationMinutes: 0 },
+      { "X-Admin-Password": "wrong-password" },
+    )
+
+    expect(response.status).toBe(401)
+    expect((await errorEnvelope(response)).code).toBe("INVALID_ADMIN_PASSWORD")
+  })
+
   test("§8: невалидный guestEmail → 400 VALIDATION_ERROR", async () => {
-    const response = await post("/api/bookings", {
+    const response = await post(app, "/api/bookings", {
       ...VALID_BOOKING,
       guestEmail: "не-email",
     })
@@ -100,7 +94,7 @@ describe("§8 Валидация и ошибки", () => {
   })
 
   test("§8: eventTypeId не UUID → 400 VALIDATION_ERROR", async () => {
-    const response = await post("/api/bookings", {
+    const response = await post(app, "/api/bookings", {
       ...VALID_BOOKING,
       eventTypeId: "не-uuid",
     })
@@ -110,7 +104,7 @@ describe("§8 Валидация и ошибки", () => {
   })
 
   test("§8: несуществующий тип события → 404 EVENT_TYPE_NOT_FOUND", async () => {
-    const response = await post("/api/bookings", VALID_BOOKING)
+    const response = await post(app, "/api/bookings", VALID_BOOKING)
 
     expect(response.status).toBe(404)
     expect((await errorEnvelope(response)).code).toBe("EVENT_TYPE_NOT_FOUND")
@@ -118,7 +112,7 @@ describe("§8 Валидация и ошибки", () => {
 
   test("§8: GET несуществующего типа события → 404 EVENT_TYPE_NOT_FOUND", async () => {
     const response = await app.handle(
-      new Request(`${BASE}/api/event-types/${VALID_BOOKING.eventTypeId}`),
+      new Request(`http://localhost/api/event-types/${VALID_BOOKING.eventTypeId}`),
     )
 
     expect(response.status).toBe(404)
