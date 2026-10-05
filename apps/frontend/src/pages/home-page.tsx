@@ -1,15 +1,19 @@
 import { Calendar } from 'lucide-react'
 import { Link } from 'react-router'
-import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-const claims = [
-  'Фиксированные 30-минутные слоты с 09:00 до 18:00.',
-  'Проверка конфликта при бронировании.',
-  'Просмотр предстоящих событий в отдельном разделе.',
+// Факты §3–§5: утверждения о модели переписаны под спецификацию (§6),
+// дословные надписи (кнопки, ссылки, шаги) взяты как есть.
+const facts = [
+  'Слоты с шагом 30 минут: с 09:00 до 17:30 по Москве.',
+  'На одно время — не больше одного бронирования.',
+  'Бронирование в три шага: Календарь → Информация → Подтверждение записи.',
 ]
+
+const description =
+  'Гость выбирает тип события и бронирует слот: рабочий день 09:00–18:00 по Москве, выбрать можно на 14 дней вперёд.'
 
 export function HomePage() {
   return (
@@ -18,14 +22,14 @@ export function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 font-semibold text-foreground">
             <Calendar aria-hidden="true" className="size-5 text-primary" />
-            Calendar
+            Календарь звонков
           </Link>
           <nav className="flex items-center gap-6 text-sm text-muted-foreground">
             <Link to="/book" className="hover:text-foreground">
-              Записаться
+              Забронировать
             </Link>
             <Link to="/events" className="hover:text-foreground">
-              Предстоящие события
+              Предстоящие встречи
             </Link>
           </nav>
         </div>
@@ -33,37 +37,28 @@ export function HomePage() {
 
       <main className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="max-w-xl">
-          <Badge
-            variant="secondary"
-            className="h-auto bg-white/90 px-4 py-1.5 tracking-wide uppercase"
-          >
-            Быстрая запись на звонок
-          </Badge>
-          <h1 className="mt-6 text-5xl font-semibold tracking-tight text-foreground sm:text-6xl">
-            Calendar
+          <h1 className="text-5xl font-semibold tracking-tight text-foreground sm:text-6xl">
+            Календарь звонков
           </h1>
-          <p className="mt-4 max-w-md text-lg text-muted-foreground">
-            Один экран, понятные слоты, быстрая бронь. Выберите время и запишитесь на звонок без
-            лишних шагов.
-          </p>
+          <p className="mt-4 max-w-md text-lg text-muted-foreground">{description}</p>
           <Link
             to="/book"
             className={cn(buttonVariants({ size: 'lg' }), 'mt-8 h-11 px-5 text-base')}
           >
-            Записаться →
+            Забронировать
           </Link>
         </section>
 
         <Card className="bg-card/95 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">Что доступно прямо сейчас</CardTitle>
+            <CardTitle className="text-xl">Как это работает</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-3 text-muted-foreground">
-              {claims.map((claim) => (
-                <li key={claim} className="flex gap-2">
+              {facts.map((fact) => (
+                <li key={fact} className="flex gap-2">
                   <span aria-hidden="true">•</span>
-                  <span>{claim}</span>
+                  <span>{fact}</span>
                 </li>
               ))}
             </ul>
