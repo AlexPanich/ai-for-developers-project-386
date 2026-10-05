@@ -35,3 +35,12 @@ jobs:
 
       - name: Verify frontend API types are committed
         run: git diff --exit-code -- apps/frontend/src/api/schema.ts
+
+      - name: Generate backend contract artifacts
+        run: bun run --filter backend codegen
+
+      - name: Verify backend contract artifacts are committed
+        run: git diff --exit-code -- apps/backend/src/api/schema.ts apps/backend/src/api/schemas.ts
+
+      - name: Typecheck backend
+        run: bun run --filter backend typecheck

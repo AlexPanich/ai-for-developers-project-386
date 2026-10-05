@@ -74,9 +74,17 @@ bun run --filter frontend codegen
 
 Команда пишет `apps/frontend/src/api/schema.ts`; файл коммитится и правится только генерацией — CI перегенерирует его и падает на ручных правках (`git diff --exit-code -- apps/frontend/src/api/schema.ts`).
 
+**Схемы и типы бекенда** генерируются командой пакета backend:
+
+```bash
+bun run --filter backend codegen
+```
+
+Команда пишет два файла: `apps/backend/src/api/schema.ts` (типы, `openapi-typescript`) и `apps/backend/src/api/schemas.ts` (TypeBox-схемы `t.*` — валидация body/params и сериализация ответов в Elysia; конвертер `apps/backend/scripts/openapi-to-typebox.ts`). Оба файла коммитятся и правятся только генерацией, CI проверяет их так же (`git diff --exit-code`). Проверка типов бекенда — `bun run --filter backend typecheck`.
+
 Клиент API фронтенда (`apps/frontend/src/api`) собирается поверх этих типов: успешные тела типизированы сгенерированными моделями, конверт `{ error: { code, message } }` разбирает обёртка `request`, и на экран ошибка доходит как `error.message`. Пути запросов относительные (`/api/...`): в dev Vite проксирует их на бекенд (`apps/frontend/vite.config.ts`).
 
-Типы и схемы валидации бекенда генерируются командой, описанной в задаче #26.
+Роуты бекенда (`apps/backend/src/app.ts`) объявляются вручную и подставляют сгенерированные схемы как валидацию входа и сериализацию ответов; почему именно так — [ADR 0002](docs/adr/0002-generation-from-contract.md).
 
 ## Структура репозитория
 
@@ -96,7 +104,7 @@ apps/
 
 На каждый push GitHub Actions запускает:
 
-- **CI** (`ci.yml`) — установка зависимостей (`--frozen-lockfile`), линтер, тесты, перегенерация контракта и типов API с проверкой, что сгенерированное закоммичено;
+- **CI** (`ci.yml`) — установка зависимостей (`--frozen-lockfile`), линтер, тесты, перегенерация контракта и типов/схем API с проверкой, что сгенерированное закоммичено, typecheck бэкенда;
 - **hexlet-check** (`hexlet-check.yml`) — автотесты Хекслета.
 
 То же самое локально, перед каждым коммитом:
