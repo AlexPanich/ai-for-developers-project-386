@@ -19,10 +19,10 @@ afterAll(() => {
 
 describe("smoke", () => {
   test("server responds over HTTP", async () => {
-    const response = await fetch(`${baseUrl}/`)
+    const response = await fetch(`${baseUrl}/api/event-types`)
 
     expect(response.status).toBe(200)
-    expect(await response.text()).toBe("Hello Elysia")
+    expect(await response.json()).toEqual({ eventTypes: [] })
   })
 
   test("unknown route returns 404", async () => {

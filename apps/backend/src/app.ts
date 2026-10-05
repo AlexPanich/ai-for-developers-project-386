@@ -63,7 +63,8 @@ export function createApp(options: { dbPath?: string } = {}) {
           return envelope("INVALID_ADMIN_PASSWORD", "Неверный пароль")
         }
       })
-      .get("/", () => "Hello Elysia")
+      // `/` API не принадлежит (в контракте его нет): главную отдаёт хост
+      // (host.ts), в деве UI отдаёт Vite на 5173.
       .get(
         EVENT_TYPES_PATH,
         // TODO(#20): список типов из SQLite (ADR 0001)

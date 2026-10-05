@@ -1,7 +1,13 @@
-import { createApp } from "./app"
+import { join } from "node:path"
+import { createHostApp } from "./host"
 
-const app = createApp()
+/** Дист фронта: `apps/frontend/dist` (см. `bun run build`); в контейнере уже собран. */
+const assetsDir = join(import.meta.dir, "..", "..", "frontend", "dist")
 
-app.listen(3000)
+const app = createHostApp({ assetsDir })
+
+const port = Number.parseInt(process.env.PORT ?? "", 10) || 3000
+
+app.listen(port)
 
 console.log(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`)
