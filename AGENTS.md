@@ -47,6 +47,7 @@ bun run test:frontend -- -t "Счётчик"   # по названию тест�
 ## Тесты: ловушки
 
 - **Не запускайте тесты frontend из корня напрямую (`bun test ...`)**: preload из `apps/frontend/bunfig.toml` (happy-dom + jest-dom-матчеры) подхватывается только при cwd = `apps/frontend`, и тесты падают с `ReferenceError: document is not defined`. Из корня используйте `bun run test:frontend -- ...`.
+- **Авто-cleanup `@testing-library/react` не включается** (в `bun:test` `afterEach` не глобальный): каждый React-тест вызывает `cleanup()` в своём `afterEach`, иначе рендеры накапливаются и запросы падают с «Found multiple elements».
 - Тесты только на `bun:test` (не vitest/jest).
 - Smoke-тест backend поднимает реальный HTTP-сервер на эфемерном порту (`app.listen(0)`) — внешние сервисы и ожидания не нужны.
 - После изменения зависимостей не забудьте закоммитить обновлённый `bun.lock` — в CI стоит `--frozen-lockfile`.
