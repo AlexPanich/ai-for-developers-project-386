@@ -54,6 +54,16 @@ bun run dev:frontend   # SPA  → http://localhost:5173
 
 Запуск одного теста — через скрипт пакета: `bun run test:frontend -- -t "Название теста"`.
 
+## Контракт API и генерация
+
+Источник правды для API — TypeSpec, [`contract/main.tsp`](contract/main.tsp). Открытая спецификация `contract/openapi.yaml` **генерируется** из него одной командой:
+
+```bash
+bun run --filter contract compile
+```
+
+Сгенерированное руками не правится: CI перегенерирует спецификацию и падает, если файл изменён вручную (`git diff --exit-code -- contract/openapi.yaml`). Из `openapi.yaml` дальнейшие артефакты (типы фронтенда, типы и схемы валидации бекенда) генерируются командами, описанными в задачах #18 и #26; направление зафиксировано в [ADR 0002](docs/adr/0002-generation-from-contract.md).
+
 ## Структура репозитория
 
 ```
