@@ -1,5 +1,5 @@
-import { Calendar } from 'lucide-react'
 import { Link } from 'react-router'
+import { SiteHeader } from '@/components/site-header'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -18,22 +18,7 @@ const description =
 export function HomePage() {
   return (
     <div className="min-h-svh bg-[radial-gradient(ellipse_90%_70%_at_100%_0%,#7eabff_0%,rgb(158_190_255/0.55)_36%,transparent_68%),linear-gradient(145deg,#e8f0ff_0%,#f7f8fb_48%,#ffe8d6_100%)] text-foreground">
-      <header className="border-b border-border/70 bg-background/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-2 font-semibold text-foreground">
-            <Calendar aria-hidden="true" className="size-5 text-primary" />
-            Календарь звонков
-          </Link>
-          <nav className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link to="/book" className="hover:text-foreground">
-              Забронировать
-            </Link>
-            <Link to="/events" className="hover:text-foreground">
-              Предстоящие встречи
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="max-w-xl">
