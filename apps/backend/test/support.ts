@@ -17,6 +17,14 @@ export const VALID_EVENT_TYPE = {
   durationMinutes: 45,
 }
 
+/** Данные гостя фикстуры: поля контракта, которые требует `POST /bookings` (§5). */
+export const GUEST = { guestName: "Иван Петров", guestEmail: "ivan@example.com" }
+
+/** Тело `POST /bookings` (§5): тип, старт и данные гостя из фикстуры. */
+export function bookingPayload(eventTypeId: string, startAt: string) {
+  return { eventTypeId, startAt, ...GUEST }
+}
+
 const tempDbs: string[] = []
 
 /** Временный файл БД на прогон: рабочий `data.db` тесты не трогают (AC #19). */
@@ -55,10 +63,10 @@ export function insertBooking(
 ): void {
   const db = new Database(dbPath)
   try {
-    // Гость тестовой фикстуры: API-путь тесты бронирования берут свой
+    // Гость берётся из фикстуры: API-путь тесты бронирования берут свой
     db.query(
       "INSERT INTO bookings (id, event_type_id, start_at, guest_name, guest_email) VALUES (?, ?, ?, ?, ?)",
-    ).run(booking.id, booking.eventTypeId, booking.startAt, "Иван Петров", "ivan@example.com")
+    ).run(booking.id, booking.eventTypeId, booking.startAt, GUEST.guestName, GUEST.guestEmail)
   } finally {
     db.close()
   }

@@ -1,6 +1,15 @@
 import { afterAll, afterEach, beforeEach, describe, expect, setSystemTime, test } from "bun:test"
 import { createApp } from "../src/app"
-import { createEventType, errorEnvelope, get, post, removeTempDbs, tempDbPath } from "./support"
+import {
+  bookingPayload,
+  createEventType,
+  errorEnvelope,
+  GUEST,
+  get,
+  post,
+  removeTempDbs,
+  tempDbPath,
+} from "./support"
 
 /** Замороженное «сейчас»: вторник утром, окно §4 — сутки МСК 2026-10-06…2026-10-20. */
 const NOW = new Date("2026-10-06T08:00:00+03:00")
@@ -14,13 +23,7 @@ interface BookingBody {
   guestEmail: string
 }
 
-const GUEST = { guestName: "Иван Петров", guestEmail: "ivan@example.com" }
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-
-function bookingBody(eventTypeId: string, startAt: string) {
-  return { eventTypeId, startAt, ...GUEST }
-}
 
 /** Слоты типа: отвечает 200 или падает с текстом ответа. */
 async function availability(
@@ -51,7 +54,7 @@ describe("§5 Бронирование гостем", () => {
     const type = await createEventType(app)
     const startAt = "2026-10-06T09:00:00+03:00"
 
-    const response = await post(app, "/api/bookings", bookingBody(type.id, startAt))
+    const response = await post(app, "/api/bookings", bookingPayload(type.id, startAt))
 
     expect(response.status).toBe(201)
     const booking = (await response.json()) as BookingBody
@@ -68,7 +71,7 @@ describe("§5 Бронирование гостем", () => {
     const startAt = "2026-10-06T10:00:00+03:00"
     const before = await availability(app, type.id)
 
-    const response = await post(app, "/api/bookings", bookingBody(type.id, startAt))
+    const response = await post(app, "/api/bookings", bookingPayload(type.id, startAt))
     expect(response.status).toBe(201)
 
     const after = await availability(app, type.id)
@@ -84,7 +87,7 @@ describe("§5 Бронирование гостем", () => {
     const response = await post(
       app,
       "/api/bookings",
-      bookingBody(crypto.randomUUID(), "2026-10-06T09:00:00+03:00"),
+      bookingPayload(crypto.randomUUID(), "2026-10-06T09:00:00+03:00"),
     )
 
     expect(response.status).toBe(404)
@@ -98,10 +101,10 @@ describe("§8 Занятость времени — 409", () => {
     const type = await createEventType(app, { durationMinutes: 30 })
     const startAt = "2026-10-06T09:00:00+03:00"
 
-    const first = await post(app, "/api/bookings", bookingBody(type.id, startAt))
+    const first = await post(app, "/api/bookings", bookingPayload(type.id, startAt))
     expect(first.status).toBe(201)
 
-    const second = await post(app, "/api/bookings", bookingBody(type.id, startAt))
+    const second = await post(app, "/api/bookings", bookingPayload(type.id, startAt))
     expect(second.status).toBe(409)
     expect((await errorEnvelope(second)).code).toBe("SLOT_TAKEN")
   })
@@ -115,7 +118,7 @@ describe("§8 Занятость времени — 409", () => {
     const foreign = await post(
       app,
       "/api/bookings",
-      bookingBody(long.id, "2026-10-06T10:00:00+03:00"),
+      bookingPayload(long.id, "2026-10-06T10:00:00+03:00"),
     )
     expect(foreign.status).toBe(201)
 
@@ -124,7 +127,7 @@ describe("§8 Занятость времени — 409", () => {
     const conflict = await post(
       app,
       "/api/bookings",
-      bookingBody(short.id, "2026-10-06T10:30:00+03:00"),
+      bookingPayload(short.id, "2026-10-06T10:30:00+03:00"),
     )
     expect(conflict.status).toBe(409)
     expect((await errorEnvelope(conflict)).code).toBe("SLOT_TAKEN")
@@ -138,7 +141,7 @@ describe("§8 startAt — 400 VALIDATION_ERROR", () => {
     eventTypeId: string,
     startAt: string,
   ): Promise<void> {
-    const response = await post(app, "/api/bookings", bookingBody(eventTypeId, startAt))
+    const response = await post(app, "/api/bookings", bookingPayload(eventTypeId, startAt))
     expect(response.status).toBe(400)
     const error = await errorEnvelope(response)
     expect(error.code).toBe("VALIDATION_ERROR")
