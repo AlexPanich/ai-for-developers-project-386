@@ -76,6 +76,10 @@ test('§7: верный пароль открывает форму создан�
   expect(screen.getByLabelText('Название')).toBeInTheDocument()
   expect(screen.getByLabelText('Описание')).toBeInTheDocument()
   expect(screen.getByLabelText('Длительность в минутах')).toBeInTheDocument()
+  // #33: guard остаётся в DOM скрытым — удаление password-поля в том же коммите,
+  // что и монтирование формы, приводит к secure input в Chrome и блокировке раскладки macOS.
+  // В юнит-тестах нет CSS, поэтому проверяем класс hidden напрямую.
+  expect(screen.getByLabelText('Пароль').closest('.hidden')).not.toBeNull()
 })
 
 test('§7: успех — пароль уходит в заголовке API, форма готова к следующему созданию', async () => {

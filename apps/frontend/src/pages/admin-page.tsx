@@ -65,100 +65,104 @@ export function AdminPage() {
     }
   }
 
-  if (!unlocked) {
-    return (
-      <main className="flex min-h-svh items-center justify-center bg-background px-6">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Создание типа события</CardTitle>
-            <CardDescription>Введите пароль владельца</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUnlock} className="flex flex-col gap-4">
-              <label htmlFor="owner-password" className={labelClass}>
-                Пароль
-              </label>
-              <input
-                id="owner-password"
-                type="password"
-                className={fieldClass}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              {guardError ? (
-                <p role="alert" className="text-sm text-destructive">
-                  {guardError}
-                </p>
-              ) : null}
-              <Button type="submit">Войти</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
-    )
-  }
-
   return (
-    <main className="flex min-h-svh items-start justify-center bg-background px-6 py-12">
-      <Card className="w-full max-w-lg">
+    <main
+      className={
+        unlocked
+          ? 'flex min-h-svh items-start justify-center bg-background px-6 py-12'
+          : 'flex min-h-svh items-center justify-center bg-background px-6'
+      }
+    >
+      {/* Guard остаётся в DOM после входа (класс hidden): удаление password-поля в одном
+          React-коммите с монтированием формы приводит к неверной классификации поля
+          «Название» как парольного — secure input и блокировка раскладки macOS (#33) */}
+      <Card className={unlocked ? 'hidden w-full max-w-sm' : 'w-full max-w-sm'}>
         <CardHeader>
           <CardTitle className="text-xl">Создание типа события</CardTitle>
+          <CardDescription>Введите пароль владельца</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <label htmlFor="event-name" className={labelClass}>
-              Название
-            </label>
-            {/* Автозаполнение отключаем: Chrome классифицирует поле по токену `name`
-                в id и на https включает secure input — раскладка macOS не переключается (#33) */}
-            <input
-              id="event-name"
-              autoComplete="off"
-              className={fieldClass}
-              value={form.name}
-              onChange={updateField('name')}
-            />
-
-            <label htmlFor="event-description" className={labelClass}>
-              Описание
-            </label>
-            <textarea
-              id="event-description"
-              className={`${fieldClass} min-h-20`}
-              value={form.description}
-              onChange={updateField('description')}
-            />
-
-            <label htmlFor="event-duration" className={labelClass}>
-              Длительность в минутах
+          <form onSubmit={handleUnlock} className="flex flex-col gap-4">
+            <label htmlFor="owner-password" className={labelClass}>
+              Пароль
             </label>
             <input
-              id="event-duration"
-              type="number"
-              min={1}
-              max={540}
+              id="owner-password"
+              type="password"
               className={fieldClass}
-              value={form.durationMinutes}
-              onChange={updateField('durationMinutes')}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
             />
-
-            {errorMessage ? (
+            {guardError ? (
               <p role="alert" className="text-sm text-destructive">
-                {errorMessage}
+                {guardError}
               </p>
             ) : null}
-            {created ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                Тип события создан
-              </p>
-            ) : null}
-
-            <Button type="submit" className="self-start">
-              Создать
-            </Button>
+            <Button type="submit">Войти</Button>
           </form>
         </CardContent>
       </Card>
+      {unlocked ? (
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Создание типа события</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <label htmlFor="event-name" className={labelClass}>
+                Название
+              </label>
+              {/* Автозаполнение отключаем: Chrome классифицирует поле по токену `name`
+                в id и на https включает secure input — раскладка macOS не переключается (#33) */}
+              <input
+                id="event-name"
+                autoComplete="off"
+                className={fieldClass}
+                value={form.name}
+                onChange={updateField('name')}
+              />
+
+              <label htmlFor="event-description" className={labelClass}>
+                Описание
+              </label>
+              <textarea
+                id="event-description"
+                className={`${fieldClass} min-h-20`}
+                value={form.description}
+                onChange={updateField('description')}
+              />
+
+              <label htmlFor="event-duration" className={labelClass}>
+                Длительность в минутах
+              </label>
+              <input
+                id="event-duration"
+                type="number"
+                min={1}
+                max={540}
+                className={fieldClass}
+                value={form.durationMinutes}
+                onChange={updateField('durationMinutes')}
+              />
+
+              {errorMessage ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {errorMessage}
+                </p>
+              ) : null}
+              {created ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Тип события создан
+                </p>
+              ) : null}
+
+              <Button type="submit" className="self-start">
+                Создать
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
     </main>
   )
 }
