@@ -25,7 +25,7 @@ bun run test:frontend            # только frontend
 bun run dev:backend              # http://localhost:3000
 bun run dev:frontend             # vite dev server
 bun run build                    # сборка: для фронтенда `tsc -b && vite build`
-bun run --filter frontend codegen # типы API фронтенда из contract/openapi.yaml → apps/frontend/src/api/schema.ts
+bun run --filter frontend codegen # типы API и клиентский SDK из contract/openapi.yaml → apps/frontend/src/api/{schema,sdk}.ts
 bun run --filter backend codegen  # типы и TypeBox-схемы бэкенда → apps/backend/src/api/{schema,schemas}.ts
 bun run --filter backend typecheck # tsc --noEmit по бэкенду
 ```
@@ -40,7 +40,7 @@ bun run test:frontend -- -t "Счётчик"   # по названию тест�
 
 Проверка типов: фронт — `tsc -b` внутри `bun run build` (корневой `bun run build` прогоняет его во всех пакетах, где есть скрипт `build`); бэк — `bun run --filter backend typecheck` (`tsc --noEmit`).
 
-Сгенерированное руками не правится: `contract/openapi.yaml`, `apps/frontend/src/api/schema.ts`, `apps/backend/src/api/schema.ts` и `apps/backend/src/api/schemas.ts` — каждый перегенерируется своей командой (`bun run --filter contract compile`, `... frontend codegen`, `... backend codegen`), CI перегенерирует и падает на ручных правках (`git diff --exit-code`).
+Сгенерированное руками не правится: `contract/openapi.yaml`, `apps/frontend/src/api/schema.ts`, `apps/frontend/src/api/sdk.ts`, `apps/backend/src/api/schema.ts` и `apps/backend/src/api/schemas.ts` — каждый перегенерируется своей командой (`bun run --filter contract compile`, `... frontend codegen`, `... backend codegen`), CI перегенерирует и падает на ручных правках (`git diff --exit-code`).
 
 Порядок проверки: `bun run lint` → `bun run test` (для бэкенда ещё `bun run --filter backend typecheck`); в CI: install → lint → test → регенерация и проверка сгенерированного → typecheck бэкенда.
 

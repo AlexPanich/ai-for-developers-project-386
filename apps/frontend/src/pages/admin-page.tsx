@@ -1,6 +1,6 @@
 import { type ChangeEvent, type FormEvent, useState } from 'react'
 import { messageFromError } from '@/api/client'
-import { createEventType } from '@/api/endpoints'
+import { createEventType } from '@/api/sdk'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 

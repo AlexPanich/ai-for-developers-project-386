@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { messageFromError } from '@/api/client'
-import { listBookings, type ResponseBody } from '@/api/endpoints'
 import type { operations } from '@/api/schema'
+import { listBookings, type ResponseBody } from '@/api/sdk'
 import { SiteHeader } from '@/components/site-header'
 import { Card, CardContent } from '@/components/ui/card'
 import { mskDateLabel, mskDayKey, mskTime } from '@/lib/msk'

@@ -2,8 +2,8 @@ import { cn } from 'cn'
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { ApiError, messageFromError } from '@/api/client'
-import { createBooking, getAvailability, getEventType, type ResponseBody } from '@/api/endpoints'
 import type { operations } from '@/api/schema'
+import { createBooking, getEventType, getEventTypeAvailability, type ResponseBody } from '@/api/sdk'
 import { SiteHeader } from '@/components/site-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDuration } from '@/lib/duration'
@@ -127,7 +127,7 @@ export function BookingPage() {
     if (!id || activeStep !== 'calendar') return
     let cancelled = false
     setSlotsState({ status: 'loading' })
-    getAvailability(id)
+    getEventTypeAvailability(id)
       .then((availability) => {
         if (!cancelled) setSlotsState({ status: 'ready', slots: availability.slots })
       })

@@ -8,7 +8,8 @@
       "!**/dist-ssr",
       "!**/build",
       "!**/coverage",
-      "!src/api/schema.ts"
+      "!src/api/schema.ts",
+      "!src/api/sdk.ts"
     ]
   },
   "linter": {
