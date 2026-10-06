@@ -109,8 +109,11 @@ export function AdminPage() {
             <label htmlFor="event-name" className={labelClass}>
               Название
             </label>
+            {/* Автозаполнение отключаем: Chrome классифицирует поле по токену `name`
+                в id и на https включает secure input — раскладка macOS не переключается (#33) */}
             <input
               id="event-name"
+              autoComplete="off"
               className={fieldClass}
               value={form.name}
               onChange={updateField('name')}
