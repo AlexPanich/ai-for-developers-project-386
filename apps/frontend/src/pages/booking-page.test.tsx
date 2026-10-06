@@ -33,6 +33,20 @@ const NOT_FOUND = {
   body: { error: { code: 'EVENT_TYPE_NOT_FOUND', message: 'Тип события не найден' } },
 }
 
+/** Успешный ответ `POST /bookings` (§5): пять полей, id генерирует бэк. */
+const CREATED_BOOKING = {
+  id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  eventTypeId: TYPE_ID,
+  startAt: '2026-10-06T10:30:00+03:00',
+  guestName: 'Иван Петров',
+  guestEmail: 'ivan@example.com',
+}
+
+/** Доступность после бронирования 10:30: слот дня занят, свободных стало меньше (§5). */
+const SLOTS_AFTER_BOOKING = SLOTS.map((slot) =>
+  slot.startAt === '2026-10-06T10:30:00+03:00' ? { ...slot, available: false } : slot,
+)
+
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -41,14 +55,37 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 /**
- * Мок API: доступность отдаёт фикстуру, тип события — `EVENT_TYPE`;
- * с `notFound` любой путь отвечает 404 контракта (§8).
+ * Мок API: доступность отдаёт `SLOTS` (после бронирования — `slotsAfterBooking`),
+ * тип события — `EVENT_TYPE`; `bookingConflict` делает `POST /bookings` 409,
+ * а с `notFound` любой путь отвечает 404 контракта (§8).
  */
-function mockApi({ notFound = false }: { notFound?: boolean } = {}) {
-  const handler = mock((input: RequestInfo | URL): Response => {
+function mockApi({
+  notFound = false,
+  slotsAfterBooking,
+  bookingConflict = false,
+}: {
+  notFound?: boolean
+  slotsAfterBooking?: typeof SLOTS
+  bookingConflict?: boolean
+} = {}) {
+  let booked = false
+  const handler = mock((input: RequestInfo | URL, init?: RequestInit): Response => {
     const url = String(input)
     if (notFound) return jsonResponse(NOT_FOUND.status, NOT_FOUND.body)
-    if (url.includes('/availability')) return jsonResponse(200, { slots: SLOTS })
+    if (url === '/api/bookings' && init?.method === 'POST') {
+      if (bookingConflict) {
+        return jsonResponse(409, {
+          error: { code: 'SLOT_TAKEN', message: 'Это время уже занято' },
+        })
+      }
+      booked = true
+      const body = JSON.parse(String(init.body)) as Record<string, string>
+      return jsonResponse(201, { id: CREATED_BOOKING.id, ...body })
+    }
+    if (url.includes('/availability')) {
+      const current = booked && slotsAfterBooking ? slotsAfterBooking : SLOTS
+      return jsonResponse(200, { slots: current })
+    }
     if (url === `/api/event-types/${TYPE_ID}`) return jsonResponse(200, EVENT_TYPE)
     if (url === '/api/event-types') return jsonResponse(200, { eventTypes: [EVENT_TYPE] })
     return jsonResponse(NOT_FOUND.status, NOT_FOUND.body)
@@ -57,9 +94,18 @@ function mockApi({ notFound = false }: { notFound?: boolean } = {}) {
   return handler
 }
 
+type ApiMock = ReturnType<typeof mockApi>
+
 /** Сколько раз страница запросила доступность (§5: при каждом показе шага). */
-function availabilityCalls(handler: ReturnType<typeof mockApi>): number {
+function availabilityCalls(handler: ApiMock): number {
   return handler.mock.calls.filter(([input]) => String(input).includes('/availability')).length
+}
+
+/** Сколько раз страница отправила `POST /bookings`. */
+function bookingCalls(handler: ApiMock): [RequestInfo | URL, RequestInit | undefined][] {
+  return handler.mock.calls.filter(
+    ([input, init]) => String(input) === '/api/bookings' && init?.method === 'POST',
+  ) as [RequestInfo | URL, RequestInit | undefined][]
 }
 
 function renderBooking() {
@@ -68,6 +114,26 @@ function renderBooking() {
       <AppRoutes />
     </MemoryRouter>,
   )
+}
+
+/** Открывает шаг «Информация»: дата, свободный слот, «Продолжить» (§5). */
+async function toInfoStep() {
+  await screen.findByText('1 св.')
+  fireEvent.click(screen.getByRole('button', { name: '6 октября 2026' }))
+  fireEvent.click(screen.getByRole('button', { name: /10:30 - 11:15/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }))
+}
+
+/** Заполняет шаг «Информация» валидными именем и email гостя (§5). */
+function fillGuest(name = 'Иван Петров', email = 'ivan@example.com') {
+  fireEvent.change(screen.getByLabelText('Имя'), { target: { value: name } })
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } })
+}
+
+/** Активный шаг мастера по списку шагов: индекс в STEPS (§5). */
+function currentStep(): number {
+  const steps = screen.getAllByRole('listitem')
+  return steps.findIndex((step) => step.getAttribute('aria-current') === 'step')
 }
 
 beforeEach(() => {
@@ -219,4 +285,112 @@ test('§6: несуществующий тип — 404 API и 404-страниц
   expect(await screen.findByRole('heading', { level: 1, name: '404' })).toBeInTheDocument()
   expect(screen.getByText('Тип события не найден')).toBeInTheDocument()
   expect(screen.queryByText('Время по Москве')).not.toBeInTheDocument()
+})
+
+test('§5: «Продолжить» открывает шаг «Информация», «Назад» возвращает на календарь', async () => {
+  const handler = mockApi()
+  renderBooking()
+
+  await screen.findByText('1 св.')
+  const next = screen.getByRole('button', { name: 'Продолжить' })
+  expect(next).toBeDisabled()
+
+  fireEvent.click(screen.getByRole('button', { name: '6 октября 2026' }))
+  fireEvent.click(screen.getByRole('button', { name: /10:30 - 11:15/ }))
+  expect(next).toBeEnabled()
+  fireEvent.click(next)
+
+  // Шаг «Информация»: имя и email гостя, выбранное время под сводкой (§5)
+  expect(currentStep()).toBe(1)
+  expect(screen.getByLabelText('Имя')).toBeInTheDocument()
+  expect(screen.getByLabelText('Email')).toBeInTheDocument()
+  expect(screen.getByText(/6 октября 2026 · 10:30 - 11:15/)).toBeInTheDocument()
+  expect(availabilityCalls(handler)).toBe(1)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Назад' }))
+
+  // Любой показ шага «Календарь» перезапрашивает доступность (§5)
+  expect(currentStep()).toBe(0)
+  expect(await screen.findByText('1 св.')).toBeInTheDocument()
+  expect(availabilityCalls(handler)).toBe(2)
+})
+
+test('§8: пустой или неверный guestEmail не пускает дальше', async () => {
+  const handler = mockApi()
+  renderBooking()
+  await toInfoStep()
+
+  const submit = screen.getByRole('button', { name: 'Подтвердить запись' })
+  expect(submit).toBeDisabled()
+
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'не-email' } })
+  expect(submit).toBeDisabled()
+  expect(bookingCalls(handler)).toHaveLength(0)
+  expect(screen.queryByText('Бронь подтверждена. До встречи!')).not.toBeInTheDocument()
+
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ivan@example.com' } })
+  expect(submit).toBeEnabled()
+})
+
+test('§5: шаг «Подтверждение записи» — 201, «Бронь подтверждена. До встречи!» и «Забронировать еще»', async () => {
+  const handler = mockApi()
+  renderBooking()
+  await toInfoStep()
+  fillGuest()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить запись' }))
+
+  expect(await screen.findByText('Бронь подтверждена. До встречи!')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Забронировать еще' })).toBeInTheDocument()
+  expect(currentStep()).toBe(2)
+
+  const calls = bookingCalls(handler)
+  expect(calls).toHaveLength(1)
+  const [input, init] = calls[0]
+  expect(String(input)).toBe('/api/bookings')
+  expect(JSON.parse(String(init?.body))).toEqual({
+    eventTypeId: TYPE_ID,
+    startAt: '2026-10-06T10:30:00+03:00',
+    guestName: 'Иван Петров',
+    guestEmail: 'ivan@example.com',
+  })
+})
+
+test('§5: после успеха «Забронировать еще» перезапрашивает календарь — свободных стало меньше', async () => {
+  const handler = mockApi({ slotsAfterBooking: SLOTS_AFTER_BOOKING })
+  renderBooking()
+  await toInfoStep()
+  fillGuest()
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить запись' }))
+  await screen.findByText('Бронь подтверждена. До встречи!')
+  expect(availabilityCalls(handler)).toBe(1)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Забронировать еще' }))
+
+  // Возврат на «Календарь» — новый показ шага: доступность перезапрошена (§5)
+  expect(await screen.findByText('Выберите дату в календаре.')).toBeInTheDocument()
+  expect(availabilityCalls(handler)).toBe(2)
+  expect(currentStep()).toBe(0)
+
+  // Забронированное время теперь занято, а свободных на дату стало меньше (§5)
+  fireEvent.click(screen.getByRole('button', { name: '6 октября 2026' }))
+  expect(screen.getByText('10:30 - 11:15').closest('li')).toHaveTextContent('Занято')
+  expect(
+    within(screen.getByRole('button', { name: '6 октября 2026' })).getByText('0 св.'),
+  ).toBeInTheDocument()
+})
+
+test('§8: 409 — отдельное состояние «слот занят», подтверждения нет', async () => {
+  mockApi({ bookingConflict: true })
+  renderBooking()
+  await toInfoStep()
+  fillGuest()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить запись' }))
+
+  // Фронт показывает error.message, а 409 — отдельным состоянием (§8)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Это время уже занято')
+  expect(screen.getByText('Слот занят')).toBeInTheDocument()
+  expect(screen.queryByText('Бронь подтверждена. До встречи!')).not.toBeInTheDocument()
+  expect(currentStep()).toBe(1)
 })
