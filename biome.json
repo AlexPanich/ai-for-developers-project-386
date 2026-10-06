@@ -2,7 +2,17 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/dist", "!**/dist-ssr", "!**/build", "!**/coverage", "!.agents"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/dist-ssr",
+      "!**/build",
+      "!**/coverage",
+      "!.agents",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!.playwright"
+    ]
   },
   "formatter": {
     "enabled": true,

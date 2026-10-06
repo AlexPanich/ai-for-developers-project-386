@@ -21,6 +21,7 @@ bun run lint                     # biome check по всему репо
 bun run lint:fix                 # автоисправления
 bun run test                     # все тесты (backend + frontend)
 bun run test:backend             # только backend
+bun run test:e2e                 # E2E (Playwright; один раз локально: bunx playwright install chromium)
 bun run test:frontend            # только frontend
 bun run dev:backend              # http://localhost:3000
 bun run dev:frontend             # vite dev server
@@ -50,6 +51,7 @@ bun run test:frontend -- -t "Счётчик"   # по названию тест�
 - **Авто-cleanup `@testing-library/react` не включается** (в `bun:test` `afterEach` не глобальный): каждый React-тест вызывает `cleanup()` в своём `afterEach`, иначе рендеры накапливаются и запросы падают с «Found multiple elements».
 - Тесты только на `bun:test` (не vitest/jest).
 - Smoke-тест backend поднимает реальный HTTP-сервер на эфемерном порту (`app.listen(0)`) — внешние сервисы и ожидания не нужны.
+- **E2E (Playwright)** лежат в `e2e/` и не входят в `bun run test`: запуск — `bun run test:e2e`. Их `webServer` сам собирает фронт и поднимает API на `:4180` с изолированной БД (`.playwright/data.db`), dev-`apps/backend/data.db` не трогается; перед первым запуском — `bunx playwright install chromium`.
 - После изменения зависимостей не забудьте закоммитить обновлённый `bun.lock` — в CI стоит `--frozen-lockfile`.
 
 ## Линт и формат
@@ -67,7 +69,7 @@ bun run test:frontend -- -t "Счётчик"   # по названию тест�
   `BREAKING CHANGE: ...`. Подробности и примеры — в `CONTRIBUTING.md`. От формата
   зависят версии и `CHANGELOG.md`.
 - Три workflow в `.github/workflows/`:
-  - `ci.yml` — install (frozen) → lint → test на **каждый push**;
+  - `ci.yml` — install (frozen) → lint → test на **каждый push**; параллельно job `e2e` (Playwright: сборка фронта и сквозной сценарий);
   - `hexlet-check.yml` — **генерируется Хекслетом: не редактировать, не удалять, не переименовывать** (то же касается репозитория);
   - `release-please.yml` — на push в `master` держит release-PR.
 - Релизы: release-please (`release-please-config.json`, `release-type: node`, путь `.`) ведёт версию в `version` корневого `package.json` и `.release-please-manifest.json`, пишет `CHANGELOG.md`, ставит теги `vX.Y.Z`. Release-PR открывается только при наличии `feat:`/`fix:`/breaking-коммитов. Бамп версии не ломает `bun install --frozen-lockfile`.

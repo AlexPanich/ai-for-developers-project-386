@@ -4,3 +4,6 @@ tsp-output/
 *.db
 *.log
 .DS_Store
+.playwright/
+test-results/
+playwright-report/

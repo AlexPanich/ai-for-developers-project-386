@@ -16,9 +16,11 @@
     "format": "biome format --write",
     "test": "bun --filter \"*\" test",
     "test:frontend": "bun --filter frontend test",
-    "test:backend": "bun --filter backend test"
+    "test:backend": "bun --filter backend test",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15"
+    "@biomejs/biome": "2.5.15",
+    "@playwright/test": "^1.63.0"
   }
 }
