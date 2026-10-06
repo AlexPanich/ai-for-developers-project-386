@@ -1,13 +1,12 @@
 import { afterAll, afterEach, describe, expect, setSystemTime, test } from "bun:test"
-import { createApp, OWNER_PASSWORD } from "../src/app"
+import { createApp } from "../src/app"
 import {
+  createEventType,
   errorEnvelope,
   get,
   insertBooking,
-  post,
   removeTempDbs,
   tempDbPath,
-  VALID_EVENT_TYPE,
 } from "./support"
 
 afterEach(() => {
@@ -18,21 +17,6 @@ afterEach(() => {
 afterAll(() => {
   removeTempDbs()
 })
-
-/** Создаёт тип события через админ-API и возвращает его id. */
-async function createType(
-  app: ReturnType<typeof createApp>,
-  overrides: { name?: string; durationMinutes?: number } = {},
-): Promise<{ id: string }> {
-  const response = await post(
-    app,
-    "/api/event-types",
-    { ...VALID_EVENT_TYPE, ...overrides },
-    { "X-Admin-Password": OWNER_PASSWORD },
-  )
-  expect(response.status).toBe(201)
-  return (await response.json()) as { id: string }
-}
 
 /** Доступность типа: возвращает слоты или падает, если ответ не 200. */
 async function availability(
@@ -48,7 +32,7 @@ describe("§3 Сетка времени и слоты", () => {
   test("§3: старты только по сетке 09:00–17:30 с шагом 30 минут на всём окне", async () => {
     setSystemTime(new Date("2026-10-06T08:00:00+03:00"))
     const app = createApp({ dbPath: tempDbPath() })
-    const type = await createType(app, { durationMinutes: 30 })
+    const type = await createEventType(app, { durationMinutes: 30 })
 
     const { slots } = await availability(app, type.id)
 
@@ -68,7 +52,7 @@ describe("§3 Сетка времени и слоты", () => {
   test("§3: тип, не помещающийся до 18:00, не предлагается — у 45-минутного нет старта 17:30", async () => {
     setSystemTime(new Date("2026-10-06T08:00:00+03:00"))
     const app = createApp({ dbPath: tempDbPath() })
-    const type = await createType(app, { durationMinutes: 45 })
+    const type = await createEventType(app, { durationMinutes: 45 })
 
     const { slots } = await availability(app, type.id)
 
@@ -86,7 +70,7 @@ describe("§4 Доступность и окно 14 дней", () => {
   test("§4: границы окна — по Москве, а не по поясу сервера", async () => {
     setSystemTime(new Date("2026-10-07T00:30:00+03:00"))
     const app = createApp({ dbPath: tempDbPath() })
-    const type = await createType(app, { durationMinutes: 30 })
+    const type = await createEventType(app, { durationMinutes: 30 })
 
     const { slots } = await availability(app, type.id)
 
@@ -98,7 +82,7 @@ describe("§4 Доступность и окно 14 дней", () => {
   test("§4: прошедший старт остаётся в списке с available: false", async () => {
     setSystemTime(new Date("2026-10-06T12:00:00+03:00"))
     const app = createApp({ dbPath: tempDbPath() })
-    const type = await createType(app, { durationMinutes: 30 })
+    const type = await createEventType(app, { durationMinutes: 30 })
 
     const { slots } = await availability(app, type.id)
     const byStart = new Map(slots.map((slot) => [slot.startAt, slot.available]))
@@ -115,13 +99,13 @@ describe("§4 Доступность и окно 14 дней", () => {
     const dbPath = tempDbPath()
     const app = createApp({ dbPath })
     // Чужое бронирование другого типа: 10:00–10:45 по Москве
-    const other = await createType(app, { name: "Разбор", durationMinutes: 45 })
+    const other = await createEventType(app, { name: "Разбор", durationMinutes: 45 })
     insertBooking(dbPath, {
       id: crypto.randomUUID(),
       eventTypeId: other.id,
       startAt: "2026-10-08T10:00:00+03:00",
     })
-    const type = await createType(app, { durationMinutes: 30 })
+    const type = await createEventType(app, { durationMinutes: 30 })
 
     const { slots } = await availability(app, type.id)
     const byStart = new Map(slots.map((slot) => [slot.startAt, slot.available]))
@@ -138,13 +122,13 @@ describe("§4 Доступность и окно 14 дней", () => {
     setSystemTime(new Date("2026-10-06T08:00:00+03:00"))
     const dbPath = tempDbPath()
     const app = createApp({ dbPath })
-    const other = await createType(app, { name: "Разбор", durationMinutes: 45 })
+    const other = await createEventType(app, { name: "Разбор", durationMinutes: 45 })
     insertBooking(dbPath, {
       id: crypto.randomUUID(),
       eventTypeId: other.id,
       startAt: "2026-10-08T10:00:00+03:00",
     })
-    const type = await createType(app, { durationMinutes: 30 })
+    const type = await createEventType(app, { durationMinutes: 30 })
 
     // Окно уехало на сутки: день бронирования всё ещё внутри окна §4
     setSystemTime(new Date("2026-10-07T08:00:00+03:00"))

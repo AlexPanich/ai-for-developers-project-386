@@ -1,7 +1,9 @@
 import { Database } from "bun:sqlite"
+import { expect } from "bun:test"
 import { rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { OWNER_PASSWORD } from "../src/app"
 
 /** Минимальный интерфейс приложения для тестов (без типовых параметров Elysia). */
 export interface AppLike {
@@ -43,9 +45,9 @@ export function countEventTypes(dbPath: string): number {
 }
 
 /**
- * Вставляет строку в `bookings` напрямую в файл БД: `POST /bookings` ещё нет
- * (#22), а тесту занятости §4 нужен существующий факт бронирования. Setup через
- * фикстуру, проверка — через HTTP-шов.
+ * Вставляет строку в `bookings` напрямую в файл БД: setup теста занятости §4 не
+ * должен зависеть от HTTP-пути (`POST /bookings`). Setup через фикстуру,
+ * проверка — через HTTP-шов.
  */
 export function insertBooking(
   dbPath: string,
@@ -53,7 +55,7 @@ export function insertBooking(
 ): void {
   const db = new Database(dbPath)
   try {
-    // Гость тестовой фикстуры: гостя API-то ещё не принимает (#22)
+    // Гость тестовой фикстуры: API-путь тесты бронирования берут свой
     db.query(
       "INSERT INTO bookings (id, event_type_id, start_at, guest_name, guest_email) VALUES (?, ?, ?, ?, ?)",
     ).run(booking.id, booking.eventTypeId, booking.startAt, "Иван Петров", "ivan@example.com")
@@ -75,6 +77,24 @@ export function post(
       body: JSON.stringify(body),
     }),
   )
+}
+
+/**
+ * Создаёт тип события через API для Владельца (§7) и возвращает его id:
+ * общая фикстура тестов, которым нужен существующий тип.
+ */
+export async function createEventType(
+  app: AppLike,
+  overrides: { name?: string; durationMinutes?: number } = {},
+): Promise<{ id: string }> {
+  const response = await post(
+    app,
+    "/api/event-types",
+    { ...VALID_EVENT_TYPE, ...overrides },
+    { "X-Admin-Password": OWNER_PASSWORD },
+  )
+  expect(response.status).toBe(201)
+  return (await response.json()) as { id: string }
 }
 
 export function get(app: AppLike, path: string): Promise<Response> {
