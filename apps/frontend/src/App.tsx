@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { AdminPage } from '@/pages/admin-page'
 import { BookPage } from '@/pages/book-page'
+import { BookingPage } from '@/pages/booking-page'
 import { HomePage } from '@/pages/home-page'
 
 export function AppRoutes() {
@@ -8,6 +9,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/book" element={<BookPage />} />
+      <Route path="/book/:id" element={<BookingPage />} />
       <Route path="/admin" element={<AdminPage />} />
     </Routes>
   )

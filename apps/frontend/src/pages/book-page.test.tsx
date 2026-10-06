@@ -33,16 +33,26 @@ function jsonResponse(status: number, body: unknown): Response {
   })
 }
 
+/**
+ * Список типов, один тип и его доступность: после клика по карточке роут
+ * `/book/:id` монтирует шаг «Календарь» и спрашивает оба эндпоинта.
+ */
+function defaultHandler(input: RequestInfo | URL): Response {
+  const url = String(input)
+  if (url === '/api/event-types') return jsonResponse(200, { eventTypes: EVENT_TYPES })
+  if (url.endsWith('/availability')) return jsonResponse(200, { slots: [] })
+  return jsonResponse(200, EVENT_TYPES[0])
+}
+
 function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Response = () =>
-    jsonResponse(200, { eventTypes: EVENT_TYPES }),
+  handler: (input: RequestInfo | URL, init?: RequestInit) => Response = defaultHandler,
 ) {
   const fetchMock = mock(handler)
   globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch
   return fetchMock
 }
 
-/** Показывает текущий путь: роута `/book/:id` ещё нет — его строит issue #21. */
+/** Показывает текущий путь после клика по карточке типа события. */
 function PathnameProbe() {
   const location = useLocation()
   return <div data-testid="pathname">{location.pathname}</div>
@@ -86,6 +96,8 @@ test('§6: клик по типу ведёт на /book/:id', async () => {
   fireEvent.click(card)
 
   expect(screen.getByTestId('pathname')).toHaveTextContent(`/book/${EVENT_TYPES[0].id}`)
+  // Ждём контент шага, чтобы обновление состояния нового роута было в act()
+  expect(await screen.findByText('Выберите дату в календаре.')).toBeInTheDocument()
 })
 
 test('§8: фронт показывает error.message из конверта ошибки API', async () => {
