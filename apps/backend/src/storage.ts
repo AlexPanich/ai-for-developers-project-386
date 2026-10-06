@@ -18,6 +18,13 @@ export interface Booking {
   guestEmail: string
 }
 
+/** Бронирование с именем своего типа — строка списка предстоящих встреч (§7). */
+export interface BookingListRow {
+  eventTypeId: string
+  eventTypeName: string
+  startAt: string
+}
+
 export interface EventTypeStore {
   insert(type: EventType): void
   /** Все типы в порядке создания (SPEC §6: список для страницы `/book`). */
@@ -26,6 +33,11 @@ export interface EventTypeStore {
   get(id: string): EventType | null
   /** Отрезки всех бронирований с длительностью их типа — для занятости слотов (§4). */
   bookingSpans(): BookingSpan[]
+  /**
+   * Все бронирования всех типов одной строкой на каждое (§7: один список).
+   * Фильтр «предстоящих» и порядок — забота API: окно выбора строк не режет (§4).
+   */
+  listBookings(): BookingListRow[]
   /** Строка в `bookings`; вызывать внутри `transaction` (ADR 0001). */
   insertBooking(booking: Booking): void
   /**
@@ -78,6 +90,13 @@ export function openEventTypeStore(dbPath: string): EventTypeStore {
   const insertBookingQuery = db.query(
     "INSERT INTO bookings (id, event_type_id, start_at, guest_name, guest_email) VALUES (?, ?, ?, ?, ?)",
   )
+  // Список встреч §7: строка на бронирование плюс имя её типа одним запросом
+  const selectBookings = db.query(`
+    SELECT bookings.event_type_id AS eventTypeId,
+           event_types.name AS eventTypeName,
+           bookings.start_at AS startAt
+    FROM bookings JOIN event_types ON event_types.id = bookings.event_type_id
+  `)
 
   return {
     insert(type) {
@@ -92,6 +111,11 @@ export function openEventTypeStore(dbPath: string): EventTypeStore {
     },
     bookingSpans() {
       return selectSpans.all() as BookingSpan[]
+    },
+    listBookings() {
+      // `event_type_id` ссылается на существующий тип (FK), поэтому соединение
+      // не теряет строки, а имя типа приходит без второго запроса
+      return selectBookings.all() as BookingListRow[]
     },
     insertBooking(booking) {
       insertBookingQuery.run(

@@ -172,8 +172,24 @@ export function createApp(options: { dbPath?: string } = {}) {
       )
       .get(
         "/api/bookings",
-        // TODO(#23): предстоящие встречи из SQLite (SPEC §7)
-        () => ({ bookings: [] }),
+        // §6–§7: публичный список предстоящих встреч — все типы одним списком,
+        // только тип события и время, без данных гостя. Прошедшие старты (уже
+        // наступившие по Москве) отбрасываются по моменту времени; строки лежат
+        // в таблице независимо от окна выбора §4 — сдвиг окна их не удаляет.
+        () => {
+          const nowMs = Date.now()
+          const upcoming = store
+            .listBookings()
+            .filter((booking) => Date.parse(booking.startAt) > nowMs)
+            .sort((left, right) => Date.parse(left.startAt) - Date.parse(right.startAt))
+
+          return {
+            bookings: upcoming.map((booking) => ({
+              eventType: { id: booking.eventTypeId, name: booking.eventTypeName },
+              startAt: booking.startAt,
+            })),
+          }
+        },
         { response: { 200: S.BookingList } },
       )
   )
