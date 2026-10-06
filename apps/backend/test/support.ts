@@ -42,6 +42,26 @@ export function countEventTypes(dbPath: string): number {
   }
 }
 
+/**
+ * Вставляет строку в `bookings` напрямую в файл БД: `POST /bookings` ещё нет
+ * (#22), а тесту занятости §4 нужен существующий факт бронирования. Setup через
+ * фикстуру, проверка — через HTTP-шов.
+ */
+export function insertBooking(
+  dbPath: string,
+  booking: { id: string; eventTypeId: string; startAt: string },
+): void {
+  const db = new Database(dbPath)
+  try {
+    // Гость тестовой фикстуры: гостя API-то ещё не принимает (#22)
+    db.query(
+      "INSERT INTO bookings (id, event_type_id, start_at, guest_name, guest_email) VALUES (?, ?, ?, ?, ?)",
+    ).run(booking.id, booking.eventTypeId, booking.startAt, "Иван Петров", "ivan@example.com")
+  } finally {
+    db.close()
+  }
+}
+
 export function post(
   app: AppLike,
   path: string,

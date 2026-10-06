@@ -2,6 +2,7 @@ import { join } from "node:path"
 import { Elysia } from "elysia"
 import type { components } from "./api/schema"
 import * as S from "./api/schemas"
+import { buildSlots } from "./availability"
 import { openEventTypeStore } from "./storage"
 
 /** Пароль Владельца (SPEC §7): на фронте та же константа в route guard (админка). */
@@ -100,8 +101,20 @@ export function createApp(options: { dbPath?: string } = {}) {
       )
       .get(
         "/api/event-types/:id/availability",
-        // TODO(#21): вычисление слотов по сетке и броням (SPEC §3–§4)
-        (ctx) => notFound(ctx),
+        // Слоты считаются на лету: сетка и окно §3–§4 + занятость по бронированиям;
+        // нет типа → 404 (SPEC §6, §8)
+        (ctx) => {
+          const type = store.get(ctx.params.id)
+          if (!type) return notFound(ctx)
+
+          return {
+            slots: buildSlots({
+              now: new Date(),
+              durationMinutes: type.durationMinutes,
+              bookings: store.bookingSpans(),
+            }),
+          }
+        },
         {
           params: S.parameters.EventTypes_availability.path,
           response: { 200: S.Availability, 404: S.ErrorBody },
