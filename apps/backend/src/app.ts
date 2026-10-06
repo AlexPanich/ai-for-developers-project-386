@@ -3,7 +3,8 @@ import { Elysia } from "elysia"
 import type { components } from "./api/schema"
 import * as S from "./api/schemas"
 import { buildSlots } from "./availability"
-import { openEventTypeStore } from "./storage"
+import { isSlotTaken, normalizeStartAt, validateStartAt } from "./booking"
+import { type Booking, openEventTypeStore } from "./storage"
 
 /** Пароль Владельца (SPEC §7): на фронте та же константа в route guard (админка). */
 export const OWNER_PASSWORD = "secret"
@@ -122,10 +123,48 @@ export function createApp(options: { dbPath?: string } = {}) {
       )
       .post(
         "/api/bookings",
-        // Формат (email, UUID, даты) проверяет сгенерированная схема body (§8);
-        // без хранилища типов событий не существует → 404 (честный ответ по контракту).
-        // TODO(#22): проверка сетки/окна, хранение и 409 SLOT_TAKEN
-        (ctx) => notFound(ctx),
+        // Порядок §8: схема контракта ловит формат полей (400), затем существование
+        // типа (404), затем правила `startAt` (400), затем занятость времени (409) —
+        // в том числе занятость другим типом события (§4). Проверка занятости и
+        // вставка идут в одной транзакции (ADR 0001).
+        (ctx) => {
+          const type = store.get(ctx.body.eventTypeId)
+          if (!type) return notFound(ctx)
+
+          const rejection = validateStartAt({
+            startAt: ctx.body.startAt,
+            now: new Date(),
+            durationMinutes: type.durationMinutes,
+          })
+          if (rejection) {
+            ctx.set.status = 400
+            return envelope("VALIDATION_ERROR", rejection)
+          }
+
+          // Время храним московским (ADR 0001): на сетке §3 формат не несёт потерь
+          const booking: Booking = {
+            id: crypto.randomUUID(),
+            eventTypeId: ctx.body.eventTypeId,
+            startAt: normalizeStartAt(ctx.body.startAt),
+            guestName: ctx.body.guestName,
+            guestEmail: ctx.body.guestEmail,
+          }
+
+          const taken = store.transaction(() => {
+            if (isSlotTaken(booking.startAt, type.durationMinutes, store.bookingSpans())) {
+              return true
+            }
+            store.insertBooking(booking)
+            return false
+          })
+          if (taken) {
+            ctx.set.status = 409
+            return envelope("SLOT_TAKEN", "Это время уже занято")
+          }
+
+          ctx.set.status = 201
+          return booking
+        },
         {
           body: S.BookingCreate,
           response: { 201: S.Booking, 400: S.ErrorBody, 404: S.ErrorBody, 409: S.ErrorBody },

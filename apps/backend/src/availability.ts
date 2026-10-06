@@ -1,20 +1,23 @@
 /**
- * Вычисление слотов для `GET /availability` (SPEC §3–§4): сетка стартов,
- * скользящее окно 14 дней, прошедшие старты и занятость по пересечению
- * с бронированиями. Слоты не хранятся — только считаются (ADR 0001).
+ * Правила слотов (SPEC §3–§4): сетка стартов, скользящее окно 14 дней,
+ * прошедшие старты и занятость по пересечению с бронированиями. Слоты не
+ * хранятся — только считаются (ADR 0001). Факты сетки, окна и формат московского
+ * времени здесь же переиспользует `booking.ts` — проверки `POST /bookings`.
  */
 
 /** Москва: фиксированное смещение +03:00, локальный пояс сервера не участвует. */
 const MSK_OFFSET_MS = 3 * 60 * 60 * 1000
-const DAY_MS = 86_400_000
 
-/** Рабочий день 09:00–18:00 и шаг сетки 30 минут — §3. */
-const GRID_START_MIN = 9 * 60
-const GRID_END_MIN = 18 * 60
-const GRID_STEP_MIN = 30
+/** Рабочий день 09:00–18:00 и шаг сетки 30 минут — §3. Общие с `booking.ts`. */
+export const GRID_START_MIN = 9 * 60
+export const GRID_END_MIN = 18 * 60
+export const GRID_STEP_MIN = 30
 
 /** Окно выбора: календарные сутки МСК [сегодня, сегодня+14] — §4. */
-const WINDOW_DAYS = 14
+export const WINDOW_DAYS = 14
+
+/** Сутки в миллисекундах: шаг окна §4. */
+export const DAY_MS = 86_400_000
 
 /** Занятость: бронирование занимает `[startAt, startAt + durationMinutes)` (§4). */
 export interface BookingSpan {
@@ -34,15 +37,22 @@ export interface BuildSlotsInput {
 }
 
 /**
+ * Полночь МСК календарных суток, в которые попадает момент: сдвигаем момент
+ * на +03:00 и округляем по UTC, затем возвращаем обратно — так граница суток
+ * не зависит от пояса сервера (§4).
+ */
+export function mskDayStart(momentMs: number): number {
+  return Math.floor((momentMs + MSK_OFFSET_MS) / DAY_MS) * DAY_MS - MSK_OFFSET_MS
+}
+
+/**
  * Слоты типа события на всё окно: старты сетки 09:00…17:30 МСК каждого дня
  * окна, что помещаются до 18:00. `available: false` у прошедших стартов
  * (остаются в списке) и у стартов, пересекающихся с чьей-то бронированием.
  */
 export function buildSlots({ now, durationMinutes, bookings }: BuildSlotsInput): Slot[] {
   const nowMs = now.getTime()
-  // «Сегодня» — календарные сутки МСК: сдвигаем момент на +03:00 и округляем
-  // по UTC, затем возвращаем обратно — так граница не зависит от пояса сервера.
-  const todayMs = Math.floor((nowMs + MSK_OFFSET_MS) / DAY_MS) * DAY_MS - MSK_OFFSET_MS
+  const todayMs = mskDayStart(nowMs)
   const durationMs = durationMinutes * 60_000
   const spans = bookings.map((booking) => {
     const startMs = Date.parse(booking.startAt)
@@ -59,7 +69,9 @@ export function buildSlots({ now, durationMinutes, bookings }: BuildSlotsInput):
     ) {
       const startMs = dayStartMs + startMin * 60_000
       // Занятость §4: [S, S+d) пересекается с [start, start+duration)
-      const busy = spans.some((span) => startMs < span.endMs && span.startMs < startMs + durationMs)
+      const busy = spans.some((span) =>
+        overlaps(startMs, startMs + durationMs, span.startMs, span.endMs),
+      )
       slots.push({
         startAt: toMskIso(startMs),
         available: startMs >= nowMs && !busy,
@@ -70,7 +82,20 @@ export function buildSlots({ now, durationMinutes, bookings }: BuildSlotsInput):
 }
 
 /** Эпоха → `YYYY-MM-DDTHH:mm:ss+03:00`: формат контракта, время московское. */
-function toMskIso(epochMs: number): string {
+export function toMskIso(epochMs: number): string {
   const iso = new Date(epochMs + MSK_OFFSET_MS).toISOString()
   return `${iso.slice(0, 19)}+03:00`
+}
+
+/**
+ * §4: `[aStart, aEnd)` пересекается с `[bStart, bEnd)`. Единственная формулировка
+ * правила занятости — её же использует `booking.ts` для 409 SLOT_TAKEN.
+ */
+export function overlaps(
+  aStartMs: number,
+  aEndMs: number,
+  bStartMs: number,
+  bEndMs: number,
+): boolean {
+  return aStartMs < bEndMs && bStartMs < aEndMs
 }

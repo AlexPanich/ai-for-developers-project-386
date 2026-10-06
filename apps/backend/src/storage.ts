@@ -9,6 +9,15 @@ export interface EventType {
   durationMinutes: number
 }
 
+/** Бронирование гостя (SPEC §5): id генерирует бэк, отмены нет (§9). */
+export interface Booking {
+  id: string
+  eventTypeId: string
+  startAt: string
+  guestName: string
+  guestEmail: string
+}
+
 export interface EventTypeStore {
   insert(type: EventType): void
   /** Все типы в порядке создания (SPEC §6: список для страницы `/book`). */
@@ -17,6 +26,13 @@ export interface EventTypeStore {
   get(id: string): EventType | null
   /** Отрезки всех бронирований с длительностью их типа — для занятости слотов (§4). */
   bookingSpans(): BookingSpan[]
+  /** Строка в `bookings`; вызывать внутри `transaction` (ADR 0001). */
+  insertBooking(booking: Booking): void
+  /**
+   * Атомарная проверка занятости и вставка (ADR 0001): правило «на одно время
+   * — одно бронирование» проверяется в приложении, в одной транзакции.
+   */
+  transaction<T>(fn: () => T): T
   close(): void
 }
 
@@ -59,6 +75,9 @@ export function openEventTypeStore(dbPath: string): EventTypeStore {
     SELECT bookings.start_at AS startAt, event_types.duration_minutes AS durationMinutes
     FROM bookings JOIN event_types ON event_types.id = bookings.event_type_id
   `)
+  const insertBookingQuery = db.query(
+    "INSERT INTO bookings (id, event_type_id, start_at, guest_name, guest_email) VALUES (?, ?, ?, ?, ?)",
+  )
 
   return {
     insert(type) {
@@ -73,6 +92,18 @@ export function openEventTypeStore(dbPath: string): EventTypeStore {
     },
     bookingSpans() {
       return selectSpans.all() as BookingSpan[]
+    },
+    insertBooking(booking) {
+      insertBookingQuery.run(
+        booking.id,
+        booking.eventTypeId,
+        booking.startAt,
+        booking.guestName,
+        booking.guestEmail,
+      )
+    },
+    transaction(fn) {
+      return db.transaction(fn)()
     },
     close() {
       db.close()
