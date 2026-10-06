@@ -73,6 +73,7 @@ bun run test:frontend -- -t "Счётчик"   # по названию тест�
   - `hexlet-check.yml` — **генерируется Хекслетом: не редактировать, не удалять, не переименовывать** (то же касается репозитория);
   - `release-please.yml` — на push в `master` держит release-PR.
 - Релизы: release-please (`release-please-config.json`, `release-type: node`, путь `.`) ведёт версию в `version` корневого `package.json` и `.release-please-manifest.json`, пишет `CHANGELOG.md`, ставит теги `vX.Y.Z`. Release-PR открывается только при наличии `feat:`/`fix:`/breaking-коммитов. Бамп версии не ломает `bun install --frozen-lockfile`.
+- Деплой: Render Web Service `hexlet-call-calendar` (`srv-db2agh6i0phs73dv8pag`, docker, frankfurt, free), autoDeploy на push в `master`; MCP-инструменты `render` настроены глобально (API key в `RENDER_API_KEY`). Данные на проде эфемерные (SQLite в контейнере сбрасывается при деплое).
 - `.gitignore` в корне: `node_modules/`, `dist/` — не коммитить.
 
 ## Agent skills

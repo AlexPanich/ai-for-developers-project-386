@@ -53,6 +53,14 @@ docker run --rm -p 8080:8080 -e PORT=8080 calendar-slot
 
 Образ ставит зависимости строго по `bun.lock`, собирает фронтенд внутри (`bun run build`) и отдаёт его бекенд: точные роуты API бьют SPA-фолбэк, неизвестные `/api/*`-пути дают 404, остальные GET-пути — `index.html` (работают глубокие ссылки `/book`, `/admin`). `docker-compose.yml` не нужен: автопроверка его не читает (решение в [issue #14](https://github.com/AlexPanich/ai-for-developers-project-386/issues/14)).
 
+## Деплой
+
+Прод: <https://hexlet-call-calendar.onrender.com> — Render Web Service (runtime Docker, регион `frankfurt`, план Free, health check `GET /`).
+
+- Сборка идёт из корневого `Dockerfile` и запускается автоматически на каждый push в `master` (`autoDeploy`); вручную — кнопкой Redeploy в [дашборде](https://dashboard.render.com/web/srv-db2agh6i0phs73dv8pag) или `trigger_deploy` через Render MCP.
+- **Данные эфемерные**: SQLite-файл живёт внутри контейнера, поэтому при каждом деплое/рестарте типы событий и бронирования сбрасываются. Для учебной сдачи это осознанный выбор (бесплатный план без диска, см. [ADR 0001](docs/adr/0001-sqlite-storage.md)); постоянный диск или Postgres — вне скоупа.
+- Сервис создан через Render MCP (`create_web_service`); доступ к аккаунту Render — по API key в переменной `RENDER_API_KEY` (конфиг MCP — `~/.config/opencode/opencode.jsonc`, ключ в репозиторий не попадает).
+
 ## Команды
 
 | Команда | Что делает |
